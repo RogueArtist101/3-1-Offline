@@ -1,4 +1,4 @@
-#include<bits/stdc++.h>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -45,6 +45,7 @@ double hManhattan(const Grid& g) {
         }
     return d;
 }
+
 double hEuclidean(const Grid& g) {
     double d = 0.0;
     for (int r = 0; r < K; r++)
@@ -174,12 +175,10 @@ struct PQItem {
     double f;
     double h;  
     int nodeIdx;
-};
 
-struct PQCompare {
-    bool operator()(const PQItem& a, const PQItem& b) const {
-        if (a.f != b.f) return a.f > b.f;
-        return a.h > b.h;
+    bool operator<(const PQItem& other) const {
+        if (f != other.f) return f > other.f;
+        return h > other.h;
     }
 };
 
@@ -201,7 +200,8 @@ vector<Grid> getNeighbors(const Grid& g) {
 vector<Grid> solveAStar(const Grid& start, Heuristic heur, double W, long long& nodesExpanded) {
     vector<SearchNode> pool;
     pool.reserve(1 << 16);
-    priority_queue<PQItem, vector<PQItem>, PQCompare> pq;
+    
+    priority_queue<PQItem> pq;
     unordered_map<Grid, int, VecHash> bestG;
     unordered_set<Grid, VecHash> closed;
 
@@ -253,60 +253,67 @@ vector<Grid> solveAStar(const Grid& start, Heuristic heur, double W, long long& 
     return {};
 }
 
-int main(int argc, char** argv) {
-
+int main() {
     Heuristic heur = Heuristic::LINEAR_CONFLICT;
-    double W = 1.0;
-    bool printStats = false;
+    
+    vector<double> weights = {1.0, 1.2, 2.0, 5.0};
 
-    for (int i = 1; i < argc; i++) {
-        string a = argv[i];
-        if (a.rfind("--heuristic=", 0) == 0) {
-            string v = a.substr(12);
-            if (v == "hamming") heur = Heuristic::HAMMING;
-            else if (v == "manhattan") heur = Heuristic::MANHATTAN;
-            else if (v == "euclidean") heur = Heuristic::EUCLIDEAN;
-            else if (v == "linear") heur = Heuristic::LINEAR_CONFLICT;
-            else if (v == "custom") heur = Heuristic::CUSTOM;
-        } else if (a.rfind("--weight=", 0) == 0) {
-            W = stod(a.substr(9));
-        } else if (a == "--stats") {
-            printStats = true;
-        }
+    ifstream inFile("input.txt");
+    ofstream outFile("output.txt");
+
+    istream& in = inFile.is_open() ? inFile : cin;
+    ostream& out = outFile.is_open() ? outFile : cout;
+
+    if (&in == &cin) {
+        ios_base::sync_with_stdio(false);
+        cin.tie(NULL);
     }
 
     int k;
-    cin >> k;
-    setupGoal(k);
+    int caseNum = 1;
+    
+    while (in >> k) {
+        setupGoal(k);
 
-    Grid start(k * k);
-    for (int i = 0; i < k * k; i++) {
-        cin >> start[i];
-    }
-
-    if (!isSolvable(start)) {
-        cout << "Unsolvable puzzle\n";
-        return 0;
-    }
-
-    long long nodesExpanded = 0;
-    vector<Grid> path = solveAStar(start, heur, W, nodesExpanded);
-
-    cout << "Minimum number of moves = " << (path.size() - 1) << "\n";
-    for (auto& g : path) {
-        for (int r = 0; r < k; r++) {
-            for (int c = 0; c < k; c++) {
-                cout << g[IDX(r, c)];
-                if (c + 1 < k) cout << ' ';
-            }
-            cout << "\n";
+        Grid start(k * k);
+        for (int i = 0; i < k * k; i++) {
+            in >> start[i];
         }
-        cout << "\n";
+
+        out << "========================================\n";
+        out << "              Test Case " << caseNum++ << "\n";
+        out << "========================================\n";
+        
+        if (!isSolvable(start)) {
+            out << "Unsolvable puzzle\n\n";
+            continue;
+        }
+
+        for (double W : weights) {
+            long long nodesExpanded = 0;
+            vector<Grid> path = solveAStar(start, heur, W, nodesExpanded);
+            int cost = path.size() - 1;
+
+            out << "[ W = " << W << " ] Cost: " << cost 
+                << " | Nodes Expanded: " << nodesExpanded << "\n";
+
+            // if (W == 1.0) {
+            //     out << "\n--- Path for W = 1.0 ---\n";
+            //     for (auto& g : path) {
+            //         for (int r = 0; r < k; r++) {
+            //             for (int c = 0; c < k; c++) {
+            //                 out << g[IDX(r, c)];
+            //                 if (c + 1 < k) out << ' ';
+            //             }
+            //             out << "\n";
+            //         }
+            //         out << "\n";
+            //     }
+            //     out << "------------------------\n";
+            // }
+        }
+        out << "\n";
     }
 
-    if (printStats) {
-        cerr << "nodes_expanded=" << nodesExpanded
-             << " cost=" << (path.size() - 1) << "\n";
-    }
     return 0;
 }

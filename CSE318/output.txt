@@ -1,0 +1,80 @@
+========================================
+              Test Case 1
+========================================
+[ W = 1 ] Cost: 46 | Nodes Expanded: 114940
+[ W = 1.2 ] Cost: 46 | Nodes Expanded: 59656
+[ W = 2 ] Cost: 60 | Nodes Expanded: 1989
+[ W = 5 ] Cost: 84 | Nodes Expanded: 552
+
+========================================
+              Test Case 2
+========================================
+[ W = 1 ] Cost: 42 | Nodes Expanded: 412238
+[ W = 1.2 ] Cost: 42 | Nodes Expanded: 212223
+[ W = 2 ] Cost: 44 | Nodes Expanded: 6153
+[ W = 5 ] Cost: 60 | Nodes Expanded: 276
+
+========================================
+              Test Case 3
+========================================
+[ W = 1 ] Cost: 46 | Nodes Expanded: 116195
+[ W = 1.2 ] Cost: 46 | Nodes Expanded: 9904
+[ W = 2 ] Cost: 50 | Nodes Expanded: 355
+[ W = 5 ] Cost: 80 | Nodes Expanded: 201
+
+========================================
+              Test Case 4
+========================================
+[ W = 1 ] Cost: 44 | Nodes Expanded: 19395
+[ W = 1.2 ] Cost: 44 | Nodes Expanded: 7525
+[ W = 2 ] Cost: 58 | Nodes Expanded: 1920
+[ W = 5 ] Cost: 84 | Nodes Expanded: 577
+
+========================================
+              Test Case 5
+========================================
+[ W = 1 ] Cost: 40 | Nodes Expanded: 18959
+[ W = 1.2 ] Cost: 40 | Nodes Expanded: 7804
+[ W = 2 ] Cost: 50 | Nodes Expanded: 2457
+[ W = 5 ] Cost: 66 | Nodes Expanded: 1018
+
+========================================
+              Test Case 6
+========================================
+[ W = 1 ] Cost: 38 | Nodes Expanded: 20102
+[ W = 1.2 ] Cost: 38 | Nodes Expanded: 12567
+[ W = 2 ] Cost: 46 | Nodes Expanded: 596
+[ W = 5 ] Cost: 64 | Nodes Expanded: 1679
+
+========================================
+              Test Case 7
+========================================
+[ W = 1 ] Cost: 34 | Nodes Expanded: 3729
+[ W = 1.2 ] Cost: 34 | Nodes Expanded: 3742
+[ W = 2 ] Cost: 40 | Nodes Expanded: 179
+[ W = 5 ] Cost: 46 | Nodes Expanded: 122
+
+========================================
+              Test Case 8
+========================================
+[ W = 1 ] Cost: 40 | Nodes Expanded: 54088
+[ W = 1.2 ] Cost: 40 | Nodes Expanded: 23481
+[ W = 2 ] Cost: 40 | Nodes Expanded: 194
+[ W = 5 ] Cost: 60 | Nodes Expanded: 245
+
+========================================
+              Test Case 9
+========================================
+[ W = 1 ] Cost: 48 | Nodes Expanded: 246714
+[ W = 1.2 ] Cost: 48 | Nodes Expanded: 99142
+[ W = 2 ] Cost: 56 | Nodes Expanded: 12542
+[ W = 5 ] Cost: 82 | Nodes Expanded: 308
+
+========================================
+              Test Case 10
+========================================
+[ W = 1 ] Cost: 36 | Nodes Expanded: 3647
+[ W = 1.2 ] Cost: 36 | Nodes Expanded: 5273
+[ W = 2 ] Cost: 40 | Nodes Expanded: 103
+[ W = 5 ] Cost: 44 | Nodes Expanded: 106
+
