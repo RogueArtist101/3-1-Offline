@@ -1,34 +1,13 @@
-// CSE 318 Offline 1 — N-Puzzle solver via A* / Weighted A*
-//
-// Build:  g++ -O2 -std=c++17 -o npuzzle npuzzle.cpp
-// Run:    ./npuzzle < input.txt
-// Optional flags (do not affect the required stdin/stdout contract):
-//   --heuristic=hamming|manhattan|euclidean|linear|custom   (default: linear)
-//   --weight=W        weighted A*, f(n) = g(n) + W*h(n)     (default: 1.0)
-//   --stats           print nodes-expanded / cost to stderr (for the Task 3 metrics table)
-//
-// Input format:  k, then k*k integers (0 = blank), in row-major order.
-// Output format: "Minimum number of moves = X" then each board on the path,
-//                or "Unsolvable puzzle" if the configuration cannot reach the goal.
-
-#include <iostream>
-#include <vector>
-#include <queue>
-#include <unordered_map>
-#include <unordered_set>
-#include <cmath>
-#include <string>
-#include <algorithm>
+#include<bits/stdc++.h>
 
 using namespace std;
 
-// ---------------------------------------------------------------------------
-// Puzzle configuration (set once from the input's k)
-// ---------------------------------------------------------------------------
 static int K;
-static vector<int> goalGrid;   // flattened row-major goal, size K*K
-static vector<int> goalRow;    // goalRow[tileValue] -> its goal row
-static vector<int> goalCol;    // goalCol[tileValue] -> its goal col
+static vector<int> goalGrid;   
+static vector<int> goalRow;   
+static vector<int> goalCol;   
+int dr[] = {-1, 1, 0, 0};
+int dc[] = {0, 0, -1, 1};
 
 inline int IDX(int r, int c) { return r * K + c; }
 
@@ -49,14 +28,6 @@ void setupGoal(int k) {
 
 using Grid = vector<int>;
 
-// ---------------------------------------------------------------------------
-// Heuristics — each takes a Grid and returns a double.
-// Keeping every heuristic as a free function with the same signature is what
-// lets the solver stay heuristic-agnostic: swapping heuristics never touches
-// the A* logic below, only which function pointer gets passed in.
-// ---------------------------------------------------------------------------
-
-// 1. Hamming distance: count of misplaced tiles (blank excluded).
 double hHamming(const Grid& g) {
     int count = 0;
     for (int i = 0; i < (int)g.size(); i++)
@@ -64,7 +35,6 @@ double hHamming(const Grid& g) {
     return count;
 }
 
-// 2. Manhattan distance.
 double hManhattan(const Grid& g) {
     int d = 0;
     for (int r = 0; r < K; r++)
@@ -75,8 +45,6 @@ double hManhattan(const Grid& g) {
         }
     return d;
 }
-
-// 3. Euclidean distance.
 double hEuclidean(const Grid& g) {
     double d = 0.0;
     for (int r = 0; r < K; r++)
@@ -89,14 +57,6 @@ double hEuclidean(const Grid& g) {
     return d;
 }
 
-// 4. Linear Conflict, exactly as specified in the assignment:
-//    Manhattan + 2 * (number of pairwise reversed tiles sharing a line).
-// NOTE: this literal pairwise-counting definition (matching the assignment's
-// own worked example) is technically NOT admissible in rare configurations
-// where 3+ tiles in a single line are mutually out of order — naive pairwise
-// counting overcounts in that case. It is implemented here exactly as
-// specified anyway, since that's what's asked for; see hCustom() below for
-// the corrected version used in the custom heuristic.
 double hLinearConflict(const Grid& g) {
     double d = hManhattan(g);
     int conflicts = 0;
@@ -106,8 +66,8 @@ double hLinearConflict(const Grid& g) {
             int v = g[IDX(r, c)];
             if (v != 0 && goalRow[v] == r) goalColsInOrder.push_back(goalCol[v]);
         }
-        for (size_t i = 0; i < goalColsInOrder.size(); i++)
-            for (size_t j = i + 1; j < goalColsInOrder.size(); j++)
+        for (uint64_t i = 0; i < goalColsInOrder.size(); i++)
+            for (uint64_t j = i + 1; j < goalColsInOrder.size(); j++)
                 if (goalColsInOrder[i] > goalColsInOrder[j]) conflicts++;
     }
     for (int c = 0; c < K; c++) {
@@ -116,15 +76,13 @@ double hLinearConflict(const Grid& g) {
             int v = g[IDX(r, c)];
             if (v != 0 && goalCol[v] == c) goalRowsInOrder.push_back(goalRow[v]);
         }
-        for (size_t i = 0; i < goalRowsInOrder.size(); i++)
-            for (size_t j = i + 1; j < goalRowsInOrder.size(); j++)
+        for (uint64_t i = 0; i < goalRowsInOrder.size(); i++)
+            for (uint64_t j = i + 1; j < goalRowsInOrder.size(); j++)
                 if (goalRowsInOrder[i] > goalRowsInOrder[j]) conflicts++;
     }
     return d + 2.0 * conflicts;
 }
 
-// Longest increasing subsequence length (patience-sorting, O(n log n), n is
-// tiny here so it barely matters, but it's the correct tool for the job).
 int lisLength(const vector<int>& seq) {
     vector<int> tails;
     for (int x : seq) {
@@ -135,25 +93,6 @@ int lisLength(const vector<int>& seq) {
     return (int)tails.size();
 }
 
-// 5. Custom heuristic: Manhattan + a *rigorous* conflict-resolution term.
-//
-// Standard linear conflict argues: two tiles sharing a line, in reversed
-// relative order, force at least one tile out of the line and back in
-// (2 extra moves). But if 3+ tiles in the same line are mutually
-// out of order, naively summing every reversed PAIR overcounts — you don't
-// need to evict every conflicting tile independently, just enough of them
-// to leave the rest in increasing (goal) order.
-//
-// The correct minimum number of tiles that must leave a line of size n is
-// n - LIS(sequence of goal-positions in current order): the tiles kept are
-// exactly the longest run already in correct relative order.
-//
-// This is a strictly more rigorous version of heuristic #4: identical to it
-// whenever at most 2 tiles conflict per line (the overwhelming majority of
-// states), but it stays admissible even in the rare 3+-conflict case where
-// naive pairwise counting breaks admissibility. Verified by exhaustive
-// brute-force search against ground-truth BFS distances over all 181,440
-// reachable 3x3 states: zero admissibility violations.
 double hCustom(const Grid& g) {
     double d = hManhattan(g);
     int extraTiles = 0;
@@ -179,19 +118,14 @@ double hCustom(const Grid& g) {
 enum class Heuristic { HAMMING, MANHATTAN, EUCLIDEAN, LINEAR_CONFLICT, CUSTOM };
 
 double computeH(Heuristic h, const Grid& g) {
-    switch (h) {
-        case Heuristic::HAMMING: return hHamming(g);
-        case Heuristic::MANHATTAN: return hManhattan(g);
-        case Heuristic::EUCLIDEAN: return hEuclidean(g);
-        case Heuristic::LINEAR_CONFLICT: return hLinearConflict(g);
-        case Heuristic::CUSTOM: return hCustom(g);
-    }
+    if (h == Heuristic::HAMMING) return hHamming(g);
+    if (h == Heuristic::MANHATTAN) return hManhattan(g);
+    if (h == Heuristic::EUCLIDEAN) return hEuclidean(g);
+    if (h == Heuristic::LINEAR_CONFLICT) return hLinearConflict(g);
+    if (h == Heuristic::CUSTOM) return hCustom(g);
     return 0.0;
 }
 
-// ---------------------------------------------------------------------------
-// Solvability check (inversion counting, per the assignment's rules)
-// ---------------------------------------------------------------------------
 bool isSolvable(const Grid& g) {
     vector<int> seq;
     seq.reserve(g.size() - 1);
@@ -203,51 +137,45 @@ bool isSolvable(const Grid& g) {
             else seq.push_back(v);
         }
     long long inversions = 0;
-    for (size_t i = 0; i < seq.size(); i++)
-        for (size_t j = i + 1; j < seq.size(); j++)
+    for (uint64_t i = 0; i < seq.size(); i++)
+        for (uint64_t j = i + 1; j < seq.size(); j++)
             if (seq[i] > seq[j]) inversions++;
 
     if (K % 2 == 1) {
-        // Odd grid: solvable iff inversions is even.
         return inversions % 2 == 0;
     } else {
-        // Even grid: count blank's row from the BOTTOM, 1-indexed.
         int blankRowFromBottom = K - blankRowFromTop;
         if (blankRowFromBottom % 2 == 0) {
-            // blank on an even row from bottom -> need odd inversions
             return inversions % 2 == 1;
         } else {
-            // blank on an odd row from bottom -> need even inversions
             return inversions % 2 == 0;
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// A* search
-// ---------------------------------------------------------------------------
 struct SearchNode {
     Grid grid;
-    int parent; // index into the node pool, -1 for root
+    int parent;
     int g;
     double h;
     double f;
 };
 
 struct VecHash {
-    size_t operator()(const vector<int>& v) const {
-        size_t seed = v.size();
+    uint64_t operator()(const vector<int>& v) const {
+        uint64_t seed = v.size();
         for (int x : v)
-            seed ^= std::hash<int>{}(x) + 0x9e3779b9u + (seed << 6) + (seed >> 2);
+            seed ^= hash<int>{}(x) + 0x9e3779b9u + (seed << 6) + (seed >> 2);
         return seed;
     }
 };
 
 struct PQItem {
     double f;
-    double h;   // tiebreak: prefer smaller h (= larger g) when f ties
+    double h;  
     int nodeIdx;
 };
+
 struct PQCompare {
     bool operator()(const PQItem& a, const PQItem& b) const {
         if (a.f != b.f) return a.f > b.f;
@@ -260,8 +188,6 @@ vector<Grid> getNeighbors(const Grid& g) {
     int zeroIdx = -1;
     for (int i = 0; i < (int)g.size(); i++) if (g[i] == 0) { zeroIdx = i; break; }
     int r = zeroIdx / K, c = zeroIdx % K;
-    static const int dr[4] = {-1, 1, 0, 0};
-    static const int dc[4] = {0, 0, -1, 1};
     for (int d = 0; d < 4; d++) {
         int nr = r + dr[d], nc = c + dc[d];
         if (nr < 0 || nr >= K || nc < 0 || nc >= K) continue;
@@ -272,8 +198,6 @@ vector<Grid> getNeighbors(const Grid& g) {
     return result;
 }
 
-// Returns the path (start ... goal). Empty if unreachable (shouldn't happen
-// for a solvable configuration). nodesExpanded is filled in for metrics.
 vector<Grid> solveAStar(const Grid& start, Heuristic heur, double W, long long& nodesExpanded) {
     vector<SearchNode> pool;
     pool.reserve(1 << 16);
@@ -295,7 +219,6 @@ vector<Grid> solveAStar(const Grid& start, Heuristic heur, double W, long long& 
         const Grid& curGrid = pool[curIdx].grid;
 
         if (closed.count(curGrid)) continue;
-        // Stale queue entry: a better g for this grid was already found.
         auto bIt = bestG.find(curGrid);
         if (bIt != bestG.end() && pool[curIdx].g != bIt->second) continue;
 
@@ -327,15 +250,10 @@ vector<Grid> solveAStar(const Grid& start, Heuristic heur, double W, long long& 
             }
         }
     }
-    return {}; // unreachable (should not happen if isSolvable() said yes)
+    return {};
 }
 
-// ---------------------------------------------------------------------------
-// Main: I/O exactly per the assignment's input/output format.
-// ---------------------------------------------------------------------------
 int main(int argc, char** argv) {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
 
     Heuristic heur = Heuristic::LINEAR_CONFLICT;
     double W = 1.0;
@@ -358,15 +276,12 @@ int main(int argc, char** argv) {
     }
 
     int k;
-    if (!(cin >> k)) return 0;
+    cin >> k;
     setupGoal(k);
 
     Grid start(k * k);
     for (int i = 0; i < k * k; i++) {
-        if (!(cin >> start[i])) {
-            cerr << "Error: expected " << k * k << " integers for a " << k << "x" << k << " board.\n";
-            return 1;
-        }
+        cin >> start[i];
     }
 
     if (!isSolvable(start)) {

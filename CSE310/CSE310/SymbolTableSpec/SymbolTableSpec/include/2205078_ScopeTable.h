@@ -1,13 +1,13 @@
 #ifndef SCOPETABLE_H
 #define SCOPETABLE_H
 
-#include <SymbolInfo.h>
-
-#include<bits/stdc++.h>
+#include "2205078_SymbolInfo.h"
+#include <string>
+#include <iostream>
 using namespace std;
 
 class ScopeTable {
-    private :
+    private:
         SymbolInfo** table;
         int numBuckets;
         ScopeTable* parentScope;
@@ -15,18 +15,18 @@ class ScopeTable {
 
         unsigned int SDBMHash(string str);
 
-    public :
+    public:
         ScopeTable(int numBuckets, int id, ScopeTable* parentScope);
-        bool Insert(string name, string type);
-        bool Delete(string name);
+        ~ScopeTable();
+
+        bool Insert(string name, string type, ostream& out);
+        SymbolInfo* LookUp(string name, int& bucketPos, int& chainPos);
         SymbolInfo* LookUp(string name);
-        void Print();
+        bool Delete(string name, ostream& out);
+        void Print(ostream& out, int indentLevel);
 
         ScopeTable* getParentScope();
         int getId();
-        ~ScopeTable();
-
 };
-
 
 #endif
